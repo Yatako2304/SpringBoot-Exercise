@@ -1,6 +1,8 @@
 package com.example.exercise.servicio;
 
 import com.example.exercise.dominio.Asistencia;
+import com.example.exercise.excepcion.RecursoNoEncontradoException;
+import com.example.exercise.excepcion.ReglaNegocioException;
 import com.example.exercise.persistencia.AsistenciaMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,33 +27,36 @@ public class AsistenciaService {
     }
 
     public Asistencia buscarPorId(int id) {
-        return mapper.buscarPorId(id);
+        Asistencia a = mapper.buscarPorId(id);
+        if (a == null) {
+            throw new RecursoNoEncontradoException("No existe la asistencia con id " + id);
+        }
+        return a;
     }
 
     public List<Asistencia> listarPorEmpleado(int empleadoId) {
+        validarEmpleado(empleadoId);
         return mapper.listarPorEmpleado(empleadoId);
     }
 
     @Transactional
     public Asistencia registrarEntrada(int empleadoId, LocalDateTime momento) {
+        validarEmpleado(empleadoId);
+
         LocalDate fecha = momento.toLocalDate();
         LocalTime hora = momento.toLocalTime();
 
-        // una entrada por día
         if (mapper.buscarPorEmpleadoYFecha(empleadoId, fecha) != null) {
-            throw new IllegalStateException("El empleado ya registró su entrada hoy");
+            throw new ReglaNegocioException("El empleado ya registró su entrada hoy");
         }
 
-        // debe tener jornada ese dia (1 = lunes ... 7 = domingo)
         int diaSemana = fecha.getDayOfWeek().getValue();
         LocalTime horaInicio = mapper.buscarHoraInicioJornada(empleadoId, diaSemana);
         if (horaInicio == null) {
-            throw new IllegalStateException("El empleado no tiene jornada este día");
+            throw new ReglaNegocioException("El empleado no tiene jornada este día");
         }
 
-        // alcular retraso
-        long minutos = Duration.between(horaInicio, hora).toMinutes();
-        int retraso = (int) Math.max(0, minutos);
+        int retraso = (int) Math.max(0, Duration.between(horaInicio, hora).toMinutes());
 
         Asistencia a = new Asistencia();
         a.setEmpleadoId(empleadoId);
@@ -66,14 +71,14 @@ public class AsistenciaService {
 
     @Transactional
     public Asistencia registrarSalida(int empleadoId, LocalDateTime momento) {
-        Asistencia a = mapper.buscarPorEmpleadoYFecha(empleadoId, momento.toLocalDate());
+        validarEmpleado(empleadoId);
 
-        // Regla 4: debe haber marcado entrada y no haber marcado salida
+        Asistencia a = mapper.buscarPorEmpleadoYFecha(empleadoId, momento.toLocalDate());
         if (a == null) {
-            throw new IllegalStateException("El empleado no registró entrada hoy");
+            throw new ReglaNegocioException("El empleado no registró entrada hoy");
         }
         if (a.getHoraSalida() != null) {
-            throw new IllegalStateException("El empleado ya registró su salida hoy");
+            throw new ReglaNegocioException("El empleado ya registró su salida hoy");
         }
 
         mapper.registrarSalida(a.getId(), momento.toLocalTime());
@@ -81,7 +86,15 @@ public class AsistenciaService {
         return a;
     }
 
-    public boolean eliminar(int id) {
-        return mapper.eliminar(id) > 0;
+    public void eliminar(int id) {
+        if (mapper.eliminar(id) == 0) {
+            throw new RecursoNoEncontradoException("No existe la asistencia con id " + id);
+        }
+    }
+
+    private void validarEmpleado(int empleadoId) {
+        if (!mapper.existeEmpleado(empleadoId)) {
+            throw new RecursoNoEncontradoException("No existe el empleado con id " + empleadoId);
+        }
     }
 }

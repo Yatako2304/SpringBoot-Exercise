@@ -35,6 +35,9 @@ public interface AsistenciaMapper {
     @Delete("DELETE FROM asistencia WHERE id = #{id}")
     int eliminar(int id);
 
+    @Select("SELECT EXISTS (SELECT 1 FROM empleado WHERE id = #{empleadoId})")
+    boolean existeEmpleado(int empleadoId);
+
     @Select("SELECT j.hora_inicio " +
             "FROM empleado e " +
             "JOIN jornada j ON j.horario_id = e.horario_id " +
