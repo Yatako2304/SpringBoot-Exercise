@@ -18,6 +18,20 @@ services:
       timeout: 3s
       retries: 10
     restart: unless-stopped
-
+  app:
+    build: .
+    container_name: asistencia-api
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_PROFILES_ACTIVE: docker
+      TZ: America/Lima
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
 volumes:
   datos-postgres:
