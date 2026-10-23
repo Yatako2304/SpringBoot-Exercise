@@ -34,4 +34,12 @@ public interface AsistenciaMapper {
 
     @Delete("DELETE FROM asistencia WHERE id = #{id}")
     int eliminar(int id);
+
+    @Select("SELECT j.hora_inicio " +
+            "FROM empleado e " +
+            "JOIN jornada j ON j.horario_id = e.horario_id " +
+            "WHERE e.id = #{empleadoId} AND j.dia_semana = #{diaSemana}")
+    LocalTime buscarHoraInicioJornada(@Param("empleadoId") int empleadoId,
+                                      @Param("diaSemana") int diaSemana);
+
 }
