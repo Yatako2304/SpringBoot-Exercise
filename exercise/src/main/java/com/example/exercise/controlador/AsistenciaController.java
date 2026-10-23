@@ -2,13 +2,13 @@ package com.example.exercise.controlador;
 
 import com.example.exercise.dominio.Asistencia;
 import com.example.exercise.servicio.AsistenciaService;
+import jakarta.validation.constraints.Positive;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/asistencias")
@@ -26,37 +26,29 @@ public class AsistenciaController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Asistencia> buscar(@PathVariable int id) {
-        Asistencia a = service.buscarPorId(id);
-        return a != null ? ResponseEntity.ok(a) : ResponseEntity.notFound().build();
+    public Asistencia buscar(@PathVariable @Positive int id) {
+        return service.buscarPorId(id);
     }
 
     @GetMapping("/empleado/{empleadoId}")
-    public List<Asistencia> listarPorEmpleado(@PathVariable int empleadoId) {
+    public List<Asistencia> listarPorEmpleado(@PathVariable @Positive int empleadoId) {
         return service.listarPorEmpleado(empleadoId);
     }
 
     @PostMapping("/empleado/{empleadoId}/entrada")
-    public ResponseEntity<Asistencia> registrarEntrada(@PathVariable int empleadoId) {
+    public ResponseEntity<Asistencia> registrarEntrada(@PathVariable @Positive int empleadoId) {
         Asistencia a = service.registrarEntrada(empleadoId, LocalDateTime.now());
         return ResponseEntity.status(HttpStatus.CREATED).body(a);
     }
 
     @PostMapping("/empleado/{empleadoId}/salida")
-    public Asistencia registrarSalida(@PathVariable int empleadoId) {
+    public Asistencia registrarSalida(@PathVariable @Positive int empleadoId) {
         return service.registrarSalida(empleadoId, LocalDateTime.now());
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable int id) {
-        return service.eliminar(id)
-                ? ResponseEntity.noContent().build()
-                : ResponseEntity.notFound().build();
-    }
-
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<Map<String, String>> reglaIncumplida(IllegalStateException e) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("error", e.getMessage()));
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminar(@PathVariable @Positive int id) {
+        service.eliminar(id);
     }
 }
